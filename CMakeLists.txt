@@ -58,60 +58,74 @@ target_link_libraries(test1 PRIVATE lib2)
 #######################################
 set(${PROJECT_NAME}_INCLUDE_DEST "include/${PROJECT_NAME}-${PROJECT_VERSION}")
 set(${PROJECT_NAME}_LIB_DEST "lib/${PROJECT_NAME}-${PROJECT_VERSION}")
-#set(UNIFIED_CVO_BIN_DEST "bin/")
+set(PROJECT_EXPORT_TARGETS ${PROJECT_NAME}Targets)
+
+# export cmake targets to the build/cmake/
+message("Project export target is ${PROJECT_EXPORT_TARGETS}.cmake")
+message("Project install lib dest is ${${PROJECT_NAME}_LIB_DEST}")
+export(
+  TARGETS lib1 lib2
+  NAMESPACE  ${PROJECT_NAME}::
+  FILE ${PROJECT_EXPORT_TARGETS}.cmake
+  )
 
 install(
     # targets to install
     TARGETS lib1 lib2
     # name of the CMake "export group" containing the targets we want to install
-    EXPORT ${PROJECT_NAME}Targets
+    EXPORT ${PROJECT_EXPORT_TARGETS}  #${PROJECT_NAME}Targets
     # Dynamic, static library and include destination locations after running
     # "make install"
     LIBRARY DESTINATION ${${PROJECT_NAME}_LIB_DEST}
     ARCHIVE DESTINATION ${${PROJECT_NAME}_LIB_DEST}
     INCLUDES DESTINATION ${${PROJECT_NAME}_INCLUDE_DEST}
-    PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}-${PROJECT_VERSION}" 
+    PUBLIC_HEADER DESTINATION "include/${PROJECT_NAME}-${PROJECT_VERSION}" 
     )
 
-  message("install_include dir is ${CMAKE_INSTALL_PREFIX}/include/${PROJECT_NAME}-${PROJECT_VERSION}")
+install(
+  # The export we want to save (matches name defined above containing the
+  # install targets)
+  EXPORT ${PROJECT_EXPORT_TARGETS}
+  # CMake file in which to store the export's information
+  FILE   ${PROJECT_EXPORT_TARGETS}.cmake
+  # Namespace prepends all targets in the export (when we import later, we
+  # will use CMakeDemo::CMakeDemo)
+  NAMESPACE ${PROJECT_NAME}::
+  # where to place the resulting file (here, we're putting it with the library)
+  DESTINATION cmake/ #${${PROJECT_NAME}_LIB_DEST}
+  )  
 
-
-
-  install(
-    # The export we want to save (matches name defined above containing the
-    # install targets)
-    EXPORT ${PROJECT_NAME}Targets
-    # CMake file in which to store the export's information
-    FILE  ${PROJECT_NAME}Targets.cmake
-    # Namespace prepends all targets in the export (when we import later, we
-    # will use CMakeDemo::CMakeDemo)
-    NAMESPACE ${PROJECT_NAME}::
-    # where to place the resulting file (here, we're putting it with the library)
-    DESTINATION ${${PROJECT_NAME}_LIB_DEST}
-    )  
-
-
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}
-	  
-	  DESTINATION ${${PROJECT_NAME}_INCLUDE_DEST})
-
-
-# Write a "version file" in case someone wants to only load a particular version 
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-  ${PROJECT_NAME}ConfigVersion.cmake
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake
   VERSION ${PROJECT_VERSION}
   COMPATIBILITY AnyNewerVersion
   )
-  
-install(
-  FILES 
-  "cmake/${PROJECT_NAME}Config.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
-  DESTINATION ${${PROJECT_NAME}_LIB_DEST}
+configure_package_config_file(
+  ${PROJECT_NAME}Config.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake
+  INSTALL_DESTINATION  cmake/
+  PATH_VARS PROJECT_NAME
   )
 
 
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/${PROJECT_NAME}
+  DESTINATION ${${PROJECT_NAME}_INCLUDE_DEST})
+
+
+# Write a "version file" in case someone wants to only load a particular version 
+  
+install(
+  FILES 
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+  #DESTINATION ${${PROJECT_NAME}_LIB_DEST}/cmake/
+  DESTINATION cmake/
+  )
+
+# Configure config file for local build tree
+#configure_file(${PROJECT_NAME}Config.cmake.in
+#  "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake" @ONLY)
 
 
 
